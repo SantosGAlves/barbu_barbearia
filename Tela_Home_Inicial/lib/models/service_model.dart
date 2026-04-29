@@ -11,7 +11,7 @@ class BarberDataService {
   }
 
   static List<String> getBarbers() {
-    return ['Felipe', 'Rodrigo Art', 'Junior Barber'];
+    return ['Felipe', 'Rodrigo Art'];
   }
 
   static List<String> getAvailableTimes() {

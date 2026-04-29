@@ -1,13 +1,28 @@
 import 'package:flutter/material.dart';
+// IMPORTS DO FIREBASE ADICIONADOS AQUI
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart'; 
+
 import 'screens/auth/login_page.dart';
 import 'screens/home/home_page.dart';
 import 'core/theme/app_theme.dart';
 import 'screens/auth/register_page.dart';
 import 'screens/bookings/booking_page.dart';
-// 1. Importe sua Splash Screen aqui (ajuste o caminho se necessário)
 import 'screens/splash/splash_tela.dart'; 
 
-void main() => runApp(const BarbeariaPremiumApp());
+// A FUNÇÃO MAIN AGORA É ASYNC (ASSÍNCRONA)
+void main() async {
+  // 1. Garante que o Flutter esteja pronto antes de chamar pacotes nativos
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // 2. Inicializa o Firebase com as opções geradas para o seu projeto
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // 3. Roda o aplicativo
+  runApp(const BarbeariaPremiumApp());
+}
 
 class BarbeariaPremiumApp extends StatelessWidget {
   const BarbeariaPremiumApp({super.key});
@@ -18,11 +33,9 @@ class BarbeariaPremiumApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       
-      // 2. Mude o initialRoute para a splash
       initialRoute: '/', 
       
       routes: {
-        // 3. Adicione a rota da Splash
         '/': (context) => const SplashScreen(), 
         '/login': (context) => const LoginPage(),
         '/register': (context) => const RegisterPage(),

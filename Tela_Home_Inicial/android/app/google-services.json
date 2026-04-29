@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "550353514684",
+    "project_id": "barbu-barbearia",
+    "storage_bucket": "barbu-barbearia.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:550353514684:android:b8d5debab4d9d0746320b9",
+        "android_client_info": {
+          "package_name": "com.example.flutter_application_2"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyARlJ5Ib0ReTTrKhoykWXObYxe8Iuu3eI4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

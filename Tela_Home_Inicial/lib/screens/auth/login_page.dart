@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -9,6 +10,44 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   bool _isPressed = false;
+  bool _isLoading = false;
+
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+
+  Future<void> _loginUser() async {
+    setState(() => _isLoading = true);
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+      
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+    } on FirebaseAuthException catch (e) {
+      String message = 'Erro ao fazer login.';
+      if (e.code == 'user-not-found' || e.code == 'wrong-password' || e.code == 'invalid-credential') {
+        message = 'E-mail ou senha incorretos.';
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message, style: const TextStyle(color: Colors.white)), backgroundColor: Colors.red)
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +59,6 @@ class _LoginPageState extends State<LoginPage> {
           child: Column(
             children: [
               const SizedBox(height: 100),
-              // Logo e Título
               const Icon(Icons.content_cut, color: Color(0xFFD32F2F), size: 80),
               const SizedBox(height: 10),
               const Text(
@@ -38,10 +76,9 @@ class _LoginPageState extends State<LoginPage> {
               ),
               const SizedBox(height: 60),
 
-              // Campos de Input
-              _buildTextField(label: "E-mail", icon: Icons.email_outlined),
+              _buildTextField(label: "E-mail", icon: Icons.email_outlined, controller: _emailController),
               const SizedBox(height: 20),
-              _buildTextField(label: "Senha", icon: Icons.lock_outline, isObscure: true),
+              _buildTextField(label: "Senha", icon: Icons.lock_outline, isObscure: true, controller: _passwordController),
               
               const SizedBox(height: 10),
               Align(
@@ -53,16 +90,11 @@ class _LoginPageState extends State<LoginPage> {
               ),
               const SizedBox(height: 30),
 
-              // Botão de Login Animado
               GestureDetector(
                 onTapDown: (_) => setState(() => _isPressed = true),
                 onTapUp: (_) => setState(() => _isPressed = false),
                 onTapCancel: () => setState(() => _isPressed = false),
-                onTap: () {
-                  // O pushReplacementNamed remove a tela de login da "pilha"
-                  // Assim, se o usuário apertar 'voltar' na Home, ele não volta pro Login
-                  Navigator.pushReplacementNamed(context, '/home');
-                },
+                onTap: _isLoading ? null : _loginUser,
                 child: AnimatedScale(
                   scale: _isPressed ? 0.95 : 1.0,
                   duration: const Duration(milliseconds: 100),
@@ -80,11 +112,10 @@ class _LoginPageState extends State<LoginPage> {
                         )
                       ],
                     ),
-                    child: const Center(
-                      child: Text(
-                        "ENTRAR",
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
+                    child: Center(
+                      child: _isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text("ENTRAR", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                     ),
                   ),
                 ),
@@ -110,7 +141,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildTextField({required String label, required IconData icon, bool isObscure = false}) {
+  Widget _buildTextField({required String label, required IconData icon, bool isObscure = false, required TextEditingController controller}) {
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF1A1A1A),
@@ -118,6 +149,7 @@ class _LoginPageState extends State<LoginPage> {
         border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
       child: TextField(
+        controller: controller,
         obscureText: isObscure,
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(

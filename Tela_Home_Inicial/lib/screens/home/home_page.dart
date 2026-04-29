@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+// Novos imports do Firebase para buscar o nome do usuário
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../history/history_page.dart';
 import '../../core/theme/app_theme.dart'; 
 
 class MainNavigation extends StatefulWidget {
@@ -11,14 +15,23 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
 
+  // 2. Crie uma lista com as telas na ordem correta
+  final List<Widget> _screens = [
+    const HomePage(),
+    const HistoryPage(), // Tela de Histórico (índice 1)
+    const Center(child: Text("Avisos em breve")), // Placeholder índice 2
+    const Center(child: Text("Perfil em breve")), // Placeholder índice 3
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Usando o fundo definido no tema
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
-          const HomePage(),
+          // 3. Mude de 'const HomePage()' para exibir a tela conforme o índice
+          _screens[_currentIndex], 
+          
           Positioned(
             left: 0,
             right: 0,
@@ -34,7 +47,7 @@ class _MainNavigationState extends State<MainNavigation> {
     return Container(
       height: 80,
       decoration: BoxDecoration(
-        color: const Color(0xFF121212), // Cor de elevação do dark mode
+        color: const Color(0xFF121212), 
         border: Border(top: BorderSide(color: Colors.white.withOpacity(0.05))),
       ),
       child: Row(
@@ -92,7 +105,6 @@ class _NavBarItemState extends State<_NavBarItem> {
 
   @override
   Widget build(BuildContext context) {
-    // Consumindo a cor primária do tema centralizado
     final Color activeColor = Theme.of(context).primaryColor;
 
     return GestureDetector(
@@ -136,8 +148,53 @@ class _NavBarItemState extends State<_NavBarItem> {
   }
 }
 
-class HomePage extends StatelessWidget {
+// Transformamos a HomePage em um StatefulWidget para gerenciar o carregamento do nome
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  String _userName = "Carregando..."; // Nome inicial enquanto busca no banco
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserName();
+  }
+
+  // Função que busca o nome no Firebase
+  Future<void> _loadUserName() async {
+    try {
+      // Pega o usuário logado atualmente
+      User? currentUser = FirebaseAuth.instance.currentUser;
+      
+      if (currentUser != null) {
+        // Busca o documento desse usuário lá na coleção 'users'
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUser.uid)
+            .get();
+
+        if (userDoc.exists && userDoc.data() != null) {
+          String fullName = userDoc.get('name');
+          
+          // Opcional: Pega apenas o primeiro nome (ex: "Gustavo Alves" vira "Gustavo")
+          String firstName = fullName.split(' ')[0];
+
+          setState(() {
+            _userName = firstName;
+          });
+        } else {
+          setState(() => _userName = "Cliente");
+        }
+      }
+    } catch (e) {
+      setState(() => _userName = "Cliente");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -153,11 +210,12 @@ class HomePage extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Column(
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("Bem-vindo de volta,", style: TextStyle(color: Colors.white54)),
-                      Text("João Silva 💈", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                      const Text("Bem-vindo de volta,", style: TextStyle(color: Colors.white54)),
+                      // Aqui exibimos o nome dinâmico vindo do banco de dados
+                      Text("$_userName 💈", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                     ],
                   ),
                   CircleAvatar(
