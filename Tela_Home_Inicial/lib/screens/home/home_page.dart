@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../history/history_page.dart';
 import '../../core/theme/app_theme.dart'; 
+import '../notifications/notifications_page.dart';
+
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -18,9 +20,9 @@ class _MainNavigationState extends State<MainNavigation> {
   // 2. Crie uma lista com as telas na ordem correta
   final List<Widget> _screens = [
     const HomePage(),
-    const HistoryPage(), // Tela de Histórico (índice 1)
-    const Center(child: Text("Avisos em breve")), // Placeholder índice 2
-    const Center(child: Text("Perfil em breve")), // Placeholder índice 3
+    const HistoryPage(), 
+    const NotificationsPage(), // Substituímos o "Avisos em breve"
+    const Center(child: Text("Perfil em breve")), 
   ];
 
   @override
