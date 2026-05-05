@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-
 class HistoryPage extends StatelessWidget {
   const HistoryPage({super.key});
 
-  // Função para cancelar o agendamento
   Future<void> _cancelBooking(BuildContext context, String docId) async {
     try {
       await FirebaseFirestore.instance
@@ -42,10 +40,10 @@ class HistoryPage extends StatelessWidget {
         automaticallyImplyLeading: false,
       ),
       body: StreamBuilder<QuerySnapshot>(
-        // Busca apenas os agendamentos do usuário logado ordenados por data
         stream: FirebaseFirestore.instance
             .collection('bookings')
             .where('userId', isEqualTo: user?.uid)
+            // Se já tiver criado o índice no Firebase, pode voltar o orderBy aqui
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) return const Center(child: Text("Erro ao carregar dados"));
@@ -64,6 +62,20 @@ class HistoryPage extends StatelessWidget {
               var doc = snapshot.data!.docs[index];
               var data = doc.data() as Map<String, dynamic>;
               String status = data['status'] ?? 'confirmado';
+
+              // MÁGICA DO TEMPO AQUI:
+              try {
+                // Junta a data e hora (Ex: "2026-05-05 14:00:00")
+                DateTime appointmentDate = DateTime.parse("${data['date']} ${data['time']}:00");
+                
+                // Se a data já passou e não foi cancelado, vira concluído visualmente
+                if (appointmentDate.isBefore(DateTime.now()) && status == 'confirmado') {
+                  status = 'concluido';
+                }
+              } catch (e) {
+                // Se der erro ao ler a data, ignora e segue a vida
+              }
+
               bool isCancelable = status == 'confirmado';
 
               return Container(

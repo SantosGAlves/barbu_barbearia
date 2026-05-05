@@ -9,6 +9,8 @@ import 'core/theme/app_theme.dart';
 import 'screens/auth/register_page.dart';
 import 'screens/bookings/booking_page.dart';
 import 'screens/splash/splash_tela.dart'; 
+import 'screens/home/loyalty_page.dart';
+import 'screens/home/products_page.dart';
 
 // A FUNÇÃO MAIN AGORA É ASYNC (ASSÍNCRONA)
 void main() async {
@@ -41,6 +43,8 @@ class BarbeariaPremiumApp extends StatelessWidget {
         '/register': (context) => const RegisterPage(),
         '/home': (context) => const ResponsiveWrapper(child: MainNavigation()),
         '/booking': (context) => const BookingPage(),
+        '/loyalty': (context) => const ResponsiveWrapper(child: LoyaltyPage()),
+        '/products': (context) => const ResponsiveWrapper(child: ProductsPage()),
       },
     );
   }

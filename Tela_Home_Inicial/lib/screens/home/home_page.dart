@@ -157,35 +157,37 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  String _userName = "Carregando..."; // Nome inicial enquanto busca no banco
+  String _userName = "Carregando..."; 
+  bool _isAdmin = false; // NOVA VARIÁVEL PARA O ADMIN
 
   @override
   void initState() {
     super.initState();
-    _loadUserName();
+    _loadUserData();
   }
 
-  // Função que busca o nome no Firebase
-  Future<void> _loadUserName() async {
+  // Função que busca o nome e verifica se é admin no Firebase
+  Future<void> _loadUserData() async {
     try {
-      // Pega o usuário logado atualmente
       User? currentUser = FirebaseAuth.instance.currentUser;
       
       if (currentUser != null) {
-        // Busca o documento desse usuário lá na coleção 'users'
         DocumentSnapshot userDoc = await FirebaseFirestore.instance
             .collection('users')
             .doc(currentUser.uid)
             .get();
 
         if (userDoc.exists && userDoc.data() != null) {
-          String fullName = userDoc.get('name');
-          
-          // Opcional: Pega apenas o primeiro nome (ex: "Gustavo Alves" vira "Gustavo")
+          var data = userDoc.data() as Map<String, dynamic>;
+          String fullName = data['name'] ?? 'Cliente';
           String firstName = fullName.split(' ')[0];
+          
+          // Verifica se o campo isAdmin existe e é true
+          bool isAdmin = data.containsKey('isAdmin') ? data['isAdmin'] : false;
 
           setState(() {
             _userName = firstName;
+            _isAdmin = isAdmin;
           });
         } else {
           setState(() => _userName = "Cliente");
@@ -194,6 +196,34 @@ class _HomePageState extends State<HomePage> {
     } catch (e) {
       setState(() => _userName = "Cliente");
     }
+  }
+
+  Future<void> _logout() async {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        title: const Text("Sair da conta", style: TextStyle(color: Colors.white)),
+        content: const Text("Tem certeza que deseja desconectar da sua conta?", style: TextStyle(color: Colors.white70)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("CANCELAR", style: TextStyle(color: Colors.white54)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD32F2F)),
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+              if (mounted) {
+                Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+              }
+            },
+            child: const Text("SAIR", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -214,22 +244,57 @@ class _HomePageState extends State<HomePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text("Bem-vindo de volta,", style: TextStyle(color: Colors.white54)),
-                      // Aqui exibimos o nome dinâmico vindo do banco de dados
                       Text("$_userName 💈", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                     ],
                   ),
-                  CircleAvatar(
-                    radius: 25,
-                    backgroundColor: primaryColor,
-                    child: const Icon(Icons.person, color: Colors.white),
+                  GestureDetector(
+                    onTap: _logout,
+                    child: CircleAvatar(
+                      radius: 25,
+                      backgroundColor: primaryColor,
+                      child: const Icon(Icons.person, color: Colors.white),
+                    ),
                   )
                 ],
               ),
             ),
           ),
+          
+          // --- BOTÃO EXCLUSIVO DE ADMIN APARECE AQUI SE FOR TRUE ---
+          if (_isAdmin)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                child: InkWell(
+                  onTap: () {
+                    // Futuramente criaremos a tela de Admin e colocaremos a rota aqui!
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Painel Admin em construção!")),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(15),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withOpacity(0.1),
+                      border: Border.all(color: Colors.amber.withOpacity(0.5)),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.admin_panel_settings, color: Colors.amber),
+                        SizedBox(width: 10),
+                        Text("ACESSAR PAINEL ADMIN", style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 20),
+              padding: const EdgeInsets.only(bottom: 20, top: 10),
               child: Column(
                 children: [
                   Icon(Icons.content_cut, color: primaryColor, size: 40),
@@ -271,7 +336,7 @@ class _HomePageState extends State<HomePage> {
               child: Text("Nossos Serviços", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             ),
           ),
-          SliverPadding(
+            SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             sliver: SliverGrid.count(
               crossAxisCount: 2,
@@ -279,8 +344,9 @@ class _HomePageState extends State<HomePage> {
               crossAxisSpacing: 16,
               children: [
                 ServiceCard(label: "AGENDAR", icon: Icons.calendar_today_rounded, onTap: () {Navigator.pushNamed(context, '/booking');}),
-                ServiceCard(label: "BARBEIROS", icon: Icons.content_cut_rounded, onTap: () {}),
-                ServiceCard(label: "GALERIA", icon: Icons.photo_library_rounded, onTap: () {}),
+                // Novos botões estratégicos:
+                ServiceCard(label: "FIDELIDADE", icon: Icons.star_rounded, onTap: () {Navigator.pushNamed(context, '/loyalty');}),
+                ServiceCard(label: "PRODUTOS", icon: Icons.shopping_bag_rounded, onTap: () {Navigator.pushNamed(context, '/products');}),
                 ServiceCard(label: "CONTATO", icon: Icons.phone_android_rounded, onTap: () {}),
               ],
             ),
