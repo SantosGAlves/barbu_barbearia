@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-// Novos imports do Firebase para buscar o nome do usuário
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../history/history_page.dart';
-import '../../core/theme/app_theme.dart'; 
 import '../notifications/notifications_page.dart';
+import '../profile/profile_page.dart';
 
 // TESTANDO PRRRRRRRRRRRRRRRRRRRRRR
 
@@ -19,12 +18,12 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
 
-  // 2. Crie uma lista com as telas na ordem correta
+  // Lista de telas na ordem das abas da bottom bar
   final List<Widget> _screens = [
     const HomePage(),
-    const HistoryPage(), 
-    const NotificationsPage(), // Substituímos o "Avisos em breve"
-    const Center(child: Text("Perfil em breve")), 
+    const HistoryPage(),
+    const NotificationsPage(),
+    const ProfilePage(),
   ];
 
   @override
@@ -351,7 +350,7 @@ class _HomePageState extends State<HomePage> {
                 // Novos botões estratégicos:
                 ServiceCard(label: "FIDELIDADE", icon: Icons.star_rounded, onTap: () {Navigator.pushNamed(context, '/loyalty');}),
                 ServiceCard(label: "PRODUTOS", icon: Icons.shopping_bag_rounded, onTap: () {Navigator.pushNamed(context, '/products');}),
-                ServiceCard(label: "CONTATO", icon: Icons.phone_android_rounded, onTap: () {}),
+                ServiceCard(label: "CONTATO", icon: Icons.phone_android_rounded, onTap: () {Navigator.pushNamed(context, '/profile');}),
               ],
             ),
           ),
