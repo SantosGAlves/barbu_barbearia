@@ -169,7 +169,8 @@ class NotificationsPage extends StatelessWidget {
                         final data =
                             doc.data() as Map<String, dynamic>;
                         return _buildNotificationCard(
-                            context, data, primaryColor);
+                            context, doc.id, data, primaryColor,
+                            userUid: user.uid);
                       }).toList(),
                     );
                   },
@@ -227,8 +228,23 @@ class NotificationsPage extends StatelessWidget {
     );
   }
 
+  Future<void> _deleteNotification(
+      BuildContext context, String userUid, String docId) async {
+    await FirebaseFirestore.instance
+        .collection('notifications')
+        .doc(userUid)
+        .collection('items')
+        .doc(docId)
+        .delete();
+  }
+
   Widget _buildNotificationCard(
-      BuildContext context, Map<String, dynamic> data, Color primaryColor) {
+    BuildContext context,
+    String docId,
+    Map<String, dynamic> data,
+    Color primaryColor, {
+    required String userUid,
+  }) {
     final type = data['type'] as String? ?? 'info';
     final titulo = data['titulo'] as String? ?? 'Notificação';
     final msg = data['msg'] as String? ?? '';
@@ -251,74 +267,140 @@ class NotificationsPage extends StatelessWidget {
         iconColor = primaryColor;
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: lida
-            ? AppColors.cardBackground
-            : AppColors.cardBackground.withOpacity(0.95),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: lida
-              ? Colors.white.withOpacity(0.05)
-              : iconColor.withOpacity(0.25),
-          width: lida ? 1 : 1.5,
+    return Dismissible(
+      key: Key(docId),
+      direction: DismissDirection.endToStart, // arrastar para a esquerda
+      background: Container(
+        margin: const EdgeInsets.only(bottom: 14),
+        decoration: BoxDecoration(
+          color: Colors.redAccent.withOpacity(0.85),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 24),
+        child: const Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.delete_rounded, color: Colors.white, size: 26),
+            SizedBox(height: 4),
+            Text('Apagar',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold)),
+          ],
         ),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(12),
+      onDismissed: (_) async {
+        await _deleteNotification(context, userUid, docId);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Notificação removida.'),
+              backgroundColor: const Color(0xFF1A1A1A),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              duration: const Duration(seconds: 2),
             ),
-            child: Icon(icon, color: iconColor, size: 22),
+          );
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: lida
+              ? AppColors.cardBackground
+              : AppColors.cardBackground.withOpacity(0.95),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: lida
+                ? Colors.white.withOpacity(0.05)
+                : iconColor.withOpacity(0.25),
+            width: lida ? 1 : 1.5,
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        titulo,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: lida ? Colors.white70 : Colors.white,
-                          fontSize: 14,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: iconColor.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: iconColor, size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          titulo,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: lida ? Colors.white70 : Colors.white,
+                            fontSize: 14,
+                          ),
                         ),
                       ),
-                    ),
-                    if (!lida)
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: iconColor,
-                          shape: BoxShape.circle,
+                      if (!lida)
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: iconColor,
+                            shape: BoxShape.circle,
+                          ),
                         ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  msg,
-                  style: TextStyle(
-                    color: lida ? Colors.white38 : Colors.white54,
-                    fontSize: 13,
-                    height: 1.4,
+                    ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 5),
+                  Text(
+                    msg,
+                    style: TextStyle(
+                      color: lida ? Colors.white38 : Colors.white54,
+                      fontSize: 13,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+            // Botão de lixeira
+            GestureDetector(
+              onTap: () async {
+                await _deleteNotification(context, userUid, docId);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Notificação removida.'),
+                      backgroundColor: const Color(0xFF1A1A1A),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
+              },
+              child: Padding(
+                padding: const EdgeInsets.only(left: 10),
+                child: Icon(
+                  Icons.delete_outline_rounded,
+                  color: Colors.white24,
+                  size: 20,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
