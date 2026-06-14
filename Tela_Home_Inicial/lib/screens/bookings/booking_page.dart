@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-// Imports necessários para o Firebase
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/service_model.dart';
+import '../../services/notification_service.dart';
 
 class BookingPage extends StatefulWidget {
   const BookingPage({super.key});
@@ -78,8 +78,8 @@ class _BookingPageState extends State<BookingPage> {
       DateTime date = DateTime.now().add(Duration(days: _selectedDayIndex));
       String dateString = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
 
-      // Salva na coleção 'bookings'
-      await FirebaseFirestore.instance.collection('bookings').add({
+      // 1. Salva na coleção 'bookings' e guarda o ID gerado
+      final docRef = await FirebaseFirestore.instance.collection('bookings').add({
         'userId': user?.uid,
         'service': _selectedService,
         'barber': _selectedBarber,
@@ -89,11 +89,47 @@ class _BookingPageState extends State<BookingPage> {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
+      // 2. Grava notificação no Firestore (lida pela NotificationsPage)
+      if (user != null) {
+        await FirebaseFirestore.instance
+            .collection('notifications')
+            .doc(user.uid)
+            .collection('items')
+            .add({
+          'type': 'booking',
+          'titulo': 'Agendamento Confirmado! ✂️',
+          'msg':
+              '$_selectedService com $_selectedBarber em $dateString às $_selectedTime.',
+          'lida': false,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      // 3. Agenda lembrete local no dispositivo (60 min antes do corte)
+      final timeParts = _selectedTime!.split(':');
+      final appointmentDateTime = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        int.parse(timeParts[0]), // hora
+        int.parse(timeParts[1]), // minuto
+      );
+
+      await NotificationService.scheduleBookingReminder(
+        bookingId: docRef.id,
+        service: _selectedService!,
+        barber: _selectedBarber!,
+        appointmentDateTime: appointmentDateTime,
+        minutesBefore: 60, // lembrar 1 hora antes
+      );
+
       _showSuccessDialog();
     } catch (e) {
       debugPrint("Erro ao salvar agendamento: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Erro ao agendar. Tente novamente."), backgroundColor: Colors.red),
+        const SnackBar(
+            content: Text("Erro ao agendar. Tente novamente."),
+            backgroundColor: Colors.red),
       );
     } finally {
       setState(() => _isSaving = false);
