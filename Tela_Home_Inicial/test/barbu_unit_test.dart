@@ -8,12 +8,12 @@ class MockBarberDataService extends Mock implements BarberDataService {}
 void main() {
   late MockBarberDataService mockService;
 
-  // CICLO DE VIDA (VÍDEO 3): Instancia um mock limpo antes de cada teste
+  // CICLO DE VIDA: Instancia um mock limpo antes de cada teste
   setUp(() {
     mockService = MockBarberDataService();
   });
 
-  // CICLO DE VIDA (VÍDEO 3): Destrói os dados do mock após cada teste para não poluir o próximo
+  // CICLO DE VIDA: Destrói os dados do mock após cada teste para não poluir o próximo
   tearDown(() {
     reset(mockService);
   });
@@ -130,12 +130,10 @@ void main() {
   group('Módulo de Modelagem - USO ATIVO DO MOCKTAIL', () {
     
     test('CT-15: Verificação estrutural do getServices usando Stubbing do Mocktail', () {
-      // Ensinando o Mock (mocktail) a devolver uma lista simulada do Firebase
       when(() => mockService.getServices()).thenReturn([
         {'name': 'Corte Padrão'}, {'name': 'Barba Premium'}, {'name': 'Combo Barbú'}
       ]);
 
-      // Validação nativa (flutter_test) sobre o comportamento do Mock
       expect(mockService.getServices().length, 3);
     });
 
@@ -172,8 +170,7 @@ void main() {
     });
 
     test('CT-20: BVA Mínimo de exclusão simulado pelo Mock - 0 horários ocupados', () {
-      // Usamos o Mock para trazer a grade limpa de agendamentos
-      when(() => mockService.getAvailableTimes()).声明Dynamic(thenReturn: ['09:00', '10:00']);
+      // Linha com erro de sintaxe corrigida para o stub clássico do Mocktail
       when(() => mockService.getAvailableTimes()).thenReturn(['09:00', '10:00']);
       
       final List<String> allTimes = mockService.getAvailableTimes();

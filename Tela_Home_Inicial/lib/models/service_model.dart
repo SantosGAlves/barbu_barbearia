@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 class BarberDataService {
-  // Simulando uma busca no banco de dados
-  static List<Map<String, dynamic>> getServices() {
+  // REMOVIDO O 'static' - Agora são métodos de instância normais
+  List<Map<String, dynamic>> getServices() {
     return [
       {'name': 'Corte Padrão', 'price': 'R\$ 45,00', 'icon': Icons.content_cut},
       {'name': 'Barba Premium', 'price': 'R\$ 35,00', 'icon': Icons.face},
@@ -10,11 +10,11 @@ class BarberDataService {
     ];
   }
 
-  static List<String> getBarbers() {
+  List<String> getBarbers() {
     return ['Felipe', 'Rodrigo Art'];
   }
 
-  static List<String> getAvailableTimes() {
+  List<String> getAvailableTimes() {
     return ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
   }
 }
