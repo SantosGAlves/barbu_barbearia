@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../../models/service_model.dart';
 import '../../services/notification_service.dart';
 
@@ -18,58 +20,45 @@ class _BookingPageState extends State<BookingPage> {
   String? _selectedTime;
   int _selectedDayIndex = 0;
 
-  // Variáveis de estado para carregamento e controle de banco de dados
   bool _isLoadingTimes = false;
   bool _isSaving = false;
 
   final List<Map<String, dynamic>> _services = BarberDataService.getServices();
-  // Se quiser garantir apenas 2 barbeiros, você pode editar o service_model.dart, 
-  // ou definir a lista direto aqui: ['Felipe', 'Rodrigo Art']
   final List<String> _barbers = BarberDataService.getBarbers();
-  
-  // Todos os horários de funcionamento da barbearia
   final List<String> _allTimes = BarberDataService.getAvailableTimes();
-  // Horários que sobrarão após consultarmos o banco
   List<String> _availableTimes = [];
 
-  // Função que busca no Firebase os horários já agendados
   Future<void> _fetchAvailableTimes() async {
     if (_selectedBarber == null) return;
 
     setState(() {
       _isLoadingTimes = true;
-      _selectedTime = null; // Reseta o horário selecionado
+      _selectedTime = null;
     });
 
-    // Formata a data escolhida para um formato padrão (ex: 2026-04-28)
     DateTime date = DateTime.now().add(Duration(days: _selectedDayIndex));
     String dateString = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
 
     try {
-      // Vai no banco e busca agendamentos do barbeiro escolhido naquele dia
       QuerySnapshot snapshot = await FirebaseFirestore.instance
           .collection('bookings')
           .where('barber', isEqualTo: _selectedBarber)
           .where('date', isEqualTo: dateString)
           .get();
 
-      // Extrai os horários que já estão ocupados
       List<String> bookedTimes = snapshot.docs.map((doc) => doc['time'] as String).toList();
 
       setState(() {
-        // Filtra a lista completa, mantendo apenas os horários que NÃO estão no banco
         _availableTimes = _allTimes.where((time) => !bookedTimes.contains(time)).toList();
       });
     } catch (e) {
       debugPrint("Erro ao buscar horários: $e");
-      // Em caso de erro, libera tudo por garantia (ou você pode bloquear tudo)
       setState(() => _availableTimes = List.from(_allTimes));
     } finally {
       setState(() => _isLoadingTimes = false);
     }
   }
 
-  // Função para salvar o agendamento final no Firebase
   Future<void> _saveBooking() async {
     setState(() => _isSaving = true);
 
@@ -78,7 +67,6 @@ class _BookingPageState extends State<BookingPage> {
       DateTime date = DateTime.now().add(Duration(days: _selectedDayIndex));
       String dateString = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
 
-      // 1. Salva na coleção 'bookings' e guarda o ID gerado
       final docRef = await FirebaseFirestore.instance.collection('bookings').add({
         'userId': user?.uid,
         'service': _selectedService,
@@ -89,7 +77,6 @@ class _BookingPageState extends State<BookingPage> {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      // 2. Grava notificação no Firestore (lida pela NotificationsPage)
       if (user != null) {
         await FirebaseFirestore.instance
             .collection('notifications')
@@ -98,21 +85,19 @@ class _BookingPageState extends State<BookingPage> {
             .add({
           'type': 'booking',
           'titulo': 'Agendamento Confirmado! ✂️',
-          'msg':
-              '$_selectedService com $_selectedBarber em $dateString às $_selectedTime.',
+          'msg': '$_selectedService com $_selectedBarber em $dateString às $_selectedTime.',
           'lida': false,
           'createdAt': FieldValue.serverTimestamp(),
         });
       }
 
-      // 3. Agenda lembrete local no dispositivo (60 min antes do corte)
       final timeParts = _selectedTime!.split(':');
       final appointmentDateTime = DateTime(
         date.year,
         date.month,
         date.day,
-        int.parse(timeParts[0]), // hora
-        int.parse(timeParts[1]), // minuto
+        int.parse(timeParts[0]),
+        int.parse(timeParts[1]),
       );
 
       await NotificationService.scheduleBookingReminder(
@@ -120,8 +105,31 @@ class _BookingPageState extends State<BookingPage> {
         service: _selectedService!,
         barber: _selectedBarber!,
         appointmentDateTime: appointmentDateTime,
-        minutesBefore: 60, // lembrar 1 hora antes
+        minutesBefore: 60,
       );
+
+      if (user != null) {
+        try {
+          final String n8nWebhookUrl = 'http://localhost:5678/webhook/33ccc221-c5e1-4867-bbe3-ba36cadc743e';
+          
+          final payload = {
+            'userName': user.displayName ?? 'Cliente',
+            'userEmail': user.email ?? 'Sem email',
+            'date': dateString,
+            'time': _selectedTime,
+            'barber': _selectedBarber,
+            'service': _selectedService,
+          };
+
+          await http.post(
+            Uri.parse(n8nWebhookUrl),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(payload),
+          );
+        } catch (e) {
+          debugPrint('Erro ao enviar webhook para o n8n: $e');
+        }
+      }
 
       _showSuccessDialog();
     } catch (e) {
@@ -177,7 +185,6 @@ class _BookingPageState extends State<BookingPage> {
     }
   }
 
-  // PASSO 1: SERVIÇOS 
   Widget _buildServiceSelection() {
     return ListView.builder(
       padding: const EdgeInsets.all(20),
@@ -218,7 +225,6 @@ class _BookingPageState extends State<BookingPage> {
     );
   }
 
-  // PASSO 2: BARBEIROS
   Widget _buildBarberSelection() {
     return ListView.builder(
       padding: const EdgeInsets.all(20),
@@ -253,7 +259,6 @@ class _BookingPageState extends State<BookingPage> {
     );
   }
 
-  // PASSO 3: CALENDÁRIO E HORÁRIOS
   Widget _buildDateTimeSelection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -275,7 +280,6 @@ class _BookingPageState extends State<BookingPage> {
               return GestureDetector(
                 onTap: () {
                   setState(() => _selectedDayIndex = index);
-                  // Sempre que trocar o dia, busca os horários livres daquele dia
                   _fetchAvailableTimes();
                 },
                 child: AnimatedContainer(
@@ -304,7 +308,6 @@ class _BookingPageState extends State<BookingPage> {
           child: Text("Horários disponíveis", style: TextStyle(fontSize: 16, color: Colors.white54)),
         ),
         
-        // Verifica se está carregando do banco
         _isLoadingTimes 
           ? const Expanded(child: Center(child: CircularProgressIndicator(color: Color(0xFFD32F2F))))
           : _availableTimes.isEmpty 
@@ -369,12 +372,11 @@ class _BookingPageState extends State<BookingPage> {
           ? _isSaving ? null : () {
               if (_currentStep < 2) {
                 setState(() => _currentStep++);
-                // Se acabou de entrar na tela de datas (Passo 3), carrega os horários
                 if (_currentStep == 2) {
                   _fetchAvailableTimes();
                 }
               } else {
-                _saveBooking(); // Finaliza e Salva
+                _saveBooking();
               }
             } 
           : null,
@@ -389,7 +391,7 @@ class _BookingPageState extends State<BookingPage> {
   void _showSuccessDialog() {
     showDialog(
       context: context,
-      barrierDismissible: false, // Força o usuário a clicar no botão para voltar
+      barrierDismissible: false,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
