@@ -2,10 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/service_model.dart';
-import '../../services/notification_service.dart';
+import '../../services/i_notification_service.dart';
+import '../../services/local_notification_service.dart';
+
+/// Utilitário puro extraído para facilitar testes de unidade.
+class BookingUtils {
+  /// Retorna apenas os horários de [allTimes] que não estão em [bookedTimes].
+  static List<String> filterTimes(
+    List<String> allTimes,
+    List<String> bookedTimes,
+  ) =>
+      allTimes.where((t) => !bookedTimes.contains(t)).toList();
+}
 
 class BookingPage extends StatefulWidget {
-  const BookingPage({super.key});
+  /// Serviço de notificações — injetável para facilitar testes.
+  /// Em produção usa [LocalNotificationService]; nos testes, [NoOpNotificationService].
+  final INotificationService notificationService;
+
+  const BookingPage({
+    super.key,
+    this.notificationService = const LocalNotificationService(),
+  });
 
   @override
   State<BookingPage> createState() => _BookingPageState();
@@ -58,7 +76,7 @@ class _BookingPageState extends State<BookingPage> {
 
       setState(() {
         // Filtra a lista completa, mantendo apenas os horários que NÃO estão no banco
-        _availableTimes = _allTimes.where((time) => !bookedTimes.contains(time)).toList();
+        _availableTimes = BookingUtils.filterTimes(_allTimes, bookedTimes);
       });
     } catch (e) {
       debugPrint("Erro ao buscar horários: $e");
@@ -115,12 +133,12 @@ class _BookingPageState extends State<BookingPage> {
         int.parse(timeParts[1]), // minuto
       );
 
-      await NotificationService.scheduleBookingReminder(
+      await widget.notificationService.scheduleReminder(
         bookingId: docRef.id,
         service: _selectedService!,
         barber: _selectedBarber!,
         appointmentDateTime: appointmentDateTime,
-        minutesBefore: 60, // lembrar 1 hora antes
+        minutesBefore: 60,
       );
 
       _showSuccessDialog();
