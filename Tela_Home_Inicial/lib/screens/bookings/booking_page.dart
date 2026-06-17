@@ -23,10 +23,21 @@ class _BookingPageState extends State<BookingPage> {
   bool _isLoadingTimes = false;
   bool _isSaving = false;
 
-  final List<Map<String, dynamic>> _services = BarberDataService.getServices();
-  final List<String> _barbers = BarberDataService.getBarbers();
-  final List<String> _allTimes = BarberDataService.getAvailableTimes();
+  // ✅ CORREÇÃO: usando instância em vez de chamada estática
+  final _dataService = BarberDataService();
+  late final List<Map<String, dynamic>> _services;
+  late final List<String> _barbers;
+  late final List<String> _allTimes;
   List<String> _availableTimes = [];
+
+  @override
+  void initState() {
+    super.initState();
+    // ✅ Inicialização segura via initState, usando a instância
+    _services = _dataService.getServices();
+    _barbers = _dataService.getBarbers();
+    _allTimes = _dataService.getAvailableTimes();
+  }
 
   Future<void> _fetchAvailableTimes() async {
     if (_selectedBarber == null) return;
@@ -111,7 +122,7 @@ class _BookingPageState extends State<BookingPage> {
       if (user != null) {
         try {
           final String n8nWebhookUrl = 'http://localhost:5678/webhook/33ccc221-c5e1-4867-bbe3-ba36cadc743e';
-          
+
           final payload = {
             'userName': user.displayName ?? 'Cliente',
             'userEmail': user.email ?? 'Sem email',
@@ -148,25 +159,26 @@ class _BookingPageState extends State<BookingPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0A),
-        appBar: AppBar(
-          title: const Text("Reserva", style: TextStyle(fontWeight: FontWeight.bold)),
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios, size: 20),
-            onPressed: () {
-              if (Navigator.canPop(context)) {
-                Navigator.pop(context);
-              } else {
-                Navigator.pushReplacementNamed(context, '/home');
-              }
-            },
-          ),
+      appBar: AppBar(
+        title: const Text("Reserva", style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, size: 20),
+          onPressed: () {
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            } else {
+              Navigator.pushReplacementNamed(context, '/home');
+            }
+          },
         ),
+      ),
       body: Column(
         children: [
           _buildStepIndicator(),
-          Expanded(child: AnimatedSwitcher(
+          Expanded(
+              child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
             child: _buildStepContent(),
           )),
@@ -178,10 +190,14 @@ class _BookingPageState extends State<BookingPage> {
 
   Widget _buildStepContent() {
     switch (_currentStep) {
-      case 0: return _buildServiceSelection();
-      case 1: return _buildBarberSelection();
-      case 2: return _buildDateTimeSelection();
-      default: return const SizedBox();
+      case 0:
+        return _buildServiceSelection();
+      case 1:
+        return _buildBarberSelection();
+      case 2:
+        return _buildDateTimeSelection();
+      default:
+        return const SizedBox();
     }
   }
 
@@ -201,18 +217,24 @@ class _BookingPageState extends State<BookingPage> {
             decoration: BoxDecoration(
               color: isSelected ? const Color(0xFFD32F2F) : const Color(0xFF1A1A1A),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: isSelected ? Colors.white30 : Colors.white.withOpacity(0.05)),
+              border: Border.all(
+                  color: isSelected ? Colors.white30 : Colors.white.withOpacity(0.05)),
             ),
             child: Row(
               children: [
-                Icon(s['icon'], color: isSelected ? Colors.white : const Color(0xFFD32F2F), size: 30),
+                Icon(s['icon'],
+                    color: isSelected ? Colors.white : const Color(0xFFD32F2F), size: 30),
                 const SizedBox(width: 20),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(s['name'], style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                      Text(s['price'], style: TextStyle(color: isSelected ? Colors.white70 : Colors.white38)),
+                      Text(s['name'],
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold)),
+                      Text(s['price'],
+                          style: TextStyle(
+                              color: isSelected ? Colors.white70 : Colors.white38)),
                     ],
                   ),
                 ),
@@ -241,16 +263,23 @@ class _BookingPageState extends State<BookingPage> {
             decoration: BoxDecoration(
               color: const Color(0xFF1A1A1A),
               borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: isSelected ? const Color(0xFFD32F2F) : Colors.transparent, width: 2),
+              border: Border.all(
+                  color: isSelected ? const Color(0xFFD32F2F) : Colors.transparent,
+                  width: 2),
             ),
             child: Row(
               children: [
-                CircleAvatar(backgroundColor: const Color(0xFFD32F2F), child: Text(b[0], style: const TextStyle(color: Colors.white))),
+                CircleAvatar(
+                    backgroundColor: const Color(0xFFD32F2F),
+                    child: Text(b[0], style: const TextStyle(color: Colors.white))),
                 const SizedBox(width: 15),
-                Text(b, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                Text(b,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                 const Spacer(),
-                if (isSelected) const Icon(Icons.radio_button_checked, color: Color(0xFFD32F2F))
-                else const Icon(Icons.radio_button_off, color: Colors.white10),
+                if (isSelected)
+                  const Icon(Icons.radio_button_checked, color: Color(0xFFD32F2F))
+                else
+                  const Icon(Icons.radio_button_off, color: Colors.white10),
               ],
             ),
           ),
@@ -265,7 +294,8 @@ class _BookingPageState extends State<BookingPage> {
       children: [
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 20),
-          child: Text("Selecione o dia", style: TextStyle(fontSize: 16, color: Colors.white54)),
+          child:
+              Text("Selecione o dia", style: TextStyle(fontSize: 16, color: Colors.white54)),
         ),
         const SizedBox(height: 15),
         SizedBox(
@@ -293,9 +323,15 @@ class _BookingPageState extends State<BookingPage> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text("${date.day}", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                      Text(["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"][date.weekday % 7],
-                        style: TextStyle(fontSize: 12, color: isSelected ? Colors.white : Colors.white38)),
+                      Text("${date.day}",
+                          style: const TextStyle(
+                              fontSize: 20, fontWeight: FontWeight.bold)),
+                      Text(
+                          ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"]
+                              [date.weekday % 7],
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: isSelected ? Colors.white : Colors.white38)),
                     ],
                   ),
                 ),
@@ -305,33 +341,44 @@ class _BookingPageState extends State<BookingPage> {
         ),
         const Padding(
           padding: EdgeInsets.fromLTRB(20, 30, 20, 15),
-          child: Text("Horários disponíveis", style: TextStyle(fontSize: 16, color: Colors.white54)),
+          child: Text("Horários disponíveis",
+              style: TextStyle(fontSize: 16, color: Colors.white54)),
         ),
-        
-        _isLoadingTimes 
-          ? const Expanded(child: Center(child: CircularProgressIndicator(color: Color(0xFFD32F2F))))
-          : _availableTimes.isEmpty 
-            ? const Expanded(child: Center(child: Text("Nenhum horário livre neste dia 😕", style: TextStyle(color: Colors.white54))))
-            : Expanded(
-                child: GridView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 4, childAspectRatio: 2.2, crossAxisSpacing: 10, mainAxisSpacing: 10,
-                  ),
-                  itemCount: _availableTimes.length,
-                  itemBuilder: (context, index) {
-                    bool isSelected = _selectedTime == _availableTimes[index];
-                    return ChoiceChip(
-                      label: Text(_availableTimes[index]),
-                      selected: isSelected,
-                      selectedColor: const Color(0xFFD32F2F),
-                      backgroundColor: const Color(0xFF1A1A1A),
-                      labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.white70),
-                      onSelected: (val) => setState(() => _selectedTime = _availableTimes[index]),
-                    );
-                  },
-                ),
-              )
+        _isLoadingTimes
+            ? const Expanded(
+                child: Center(
+                    child: CircularProgressIndicator(color: Color(0xFFD32F2F))))
+            : _availableTimes.isEmpty
+                ? const Expanded(
+                    child: Center(
+                        child: Text("Nenhum horário livre neste dia 😕",
+                            style: TextStyle(color: Colors.white54))))
+                : Expanded(
+                    child: GridView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 4,
+                        childAspectRatio: 2.2,
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                      ),
+                      itemCount: _availableTimes.length,
+                      itemBuilder: (context, index) {
+                        bool isSelected = _selectedTime == _availableTimes[index];
+                        return ChoiceChip(
+                          label: Text(_availableTimes[index]),
+                          selected: isSelected,
+                          selectedColor: const Color(0xFFD32F2F),
+                          backgroundColor: const Color(0xFF1A1A1A),
+                          labelStyle: TextStyle(
+                              color: isSelected ? Colors.white : Colors.white70),
+                          onSelected: (val) => setState(
+                              () => _selectedTime = _availableTimes[index]),
+                        );
+                      },
+                    ),
+                  )
       ],
     );
   }
@@ -341,24 +388,28 @@ class _BookingPageState extends State<BookingPage> {
       padding: const EdgeInsets.symmetric(vertical: 20),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: List.generate(3, (index) => AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          height: 4,
-          width: _currentStep == index ? 50 : 30,
-          decoration: BoxDecoration(
-            color: _currentStep >= index ? const Color(0xFFD32F2F) : Colors.white10,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        )),
+        children: List.generate(
+            3,
+            (index) => AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  height: 4,
+                  width: _currentStep == index ? 50 : 30,
+                  decoration: BoxDecoration(
+                    color: _currentStep >= index
+                        ? const Color(0xFFD32F2F)
+                        : Colors.white10,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                )),
       ),
     );
   }
 
   Widget _buildBottomControl() {
     bool canGoNext = (_currentStep == 0 && _selectedService != null) ||
-                     (_currentStep == 1 && _selectedBarber != null) ||
-                     (_currentStep == 2 && _selectedTime != null);
+        (_currentStep == 1 && _selectedBarber != null) ||
+        (_currentStep == 2 && _selectedTime != null);
 
     return Padding(
       padding: const EdgeInsets.all(20),
@@ -366,24 +417,28 @@ class _BookingPageState extends State<BookingPage> {
         style: ElevatedButton.styleFrom(
           backgroundColor: canGoNext ? const Color(0xFFD32F2F) : Colors.white10,
           minimumSize: const Size(double.infinity, 55),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         ),
-        onPressed: canGoNext 
-          ? _isSaving ? null : () {
-              if (_currentStep < 2) {
-                setState(() => _currentStep++);
-                if (_currentStep == 2) {
-                  _fetchAvailableTimes();
-                }
-              } else {
-                _saveBooking();
-              }
-            } 
-          : null,
-        child: _isSaving 
-          ? const CircularProgressIndicator(color: Colors.white)
-          : Text(_currentStep == 2 ? "CONFIRMAR" : "PRÓXIMO", 
-              style: TextStyle(color: canGoNext ? Colors.white : Colors.white24)),
+        onPressed: canGoNext
+            ? _isSaving
+                ? null
+                : () {
+                    if (_currentStep < 2) {
+                      setState(() => _currentStep++);
+                      if (_currentStep == 2) {
+                        _fetchAvailableTimes();
+                      }
+                    } else {
+                      _saveBooking();
+                    }
+                  }
+            : null,
+        child: _isSaving
+            ? const CircularProgressIndicator(color: Colors.white)
+            : Text(_currentStep == 2 ? "CONFIRMAR" : "PRÓXIMO",
+                style:
+                    TextStyle(color: canGoNext ? Colors.white : Colors.white24)),
       ),
     );
   }
@@ -398,17 +453,28 @@ class _BookingPageState extends State<BookingPage> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.check_circle_outline, color: Color(0xFFD32F2F), size: 80),
+            const Icon(Icons.check_circle_outline,
+                color: Color(0xFFD32F2F), size: 80),
             const SizedBox(height: 20),
-            const Text("Agendado!", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+            const Text("Agendado!",
+                style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white)),
             const SizedBox(height: 10),
-            Text("Seu horário com $_selectedBarber foi reservado com sucesso.", 
-              textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70)),
+            Text(
+              "Seu horário com $_selectedBarber foi reservado com sucesso.",
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white70),
+            ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD32F2F)),
-              child: const Text(style: TextStyle(color: Colors.white),"Voltar para Início"),
+              onPressed: () =>
+                  Navigator.of(context).popUntil((route) => route.isFirst),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFD32F2F)),
+              child: const Text(
+                  style: TextStyle(color: Colors.white), "Voltar para Início"),
             )
           ],
         ),
